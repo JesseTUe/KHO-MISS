@@ -16,7 +16,7 @@ Settings:
 Device Name (IMPORTANT): Update with device name (MISS1, MISS2...) for correct handling of the data!!
 
 Author: Nicolas Martinez (UNIS/LTU)
-Last update: September 2024
+Updated by Jesse Delbressine (UNIS & TU/e)
 
 '''
 
@@ -36,8 +36,9 @@ optimal_temperature = parameters['optimal_temperature']
 imaging_cadence = parameters['imaging_cadence']
 binX = parameters['binX']
 binY = parameters['binY']
+threshold_value = 65535 # Define the threshold for rescaling if needed.
 
-# Try to connect to the camera, retry if it fails.
+# This function will connect the camera
 def connect_camera():
     while True:
         try:
@@ -59,14 +60,22 @@ camera.set_exposure_speed(exposure_duration)
 camera.set_binning(binX, binY)
 camera.set_cooling(optimal_temperature)
 
-def capture_and_save_images(base_folder, camera):
-    '''
-    This function captures images using the Atik414EX camera and saves them as 16-bit PNG files with metadata.
+print(f"Camera exposure set to: {camera.get_exposure_speed()} seconds")
+print(f"Camera binning set to: {camera.get_binning()}")
+print(f"Cooling set to: {optimal_temperature}")
 
-    Parameters:
-        base_folder (str): The base directory where images will be saved.
-        camera (AtikSDK.AtikSDKCamera): The camera object used to capture images.
-    '''
+# Function to cap intenisities according to the threshold value and then rescale the capped intensities to a 16bit range again.
+def rescale_image(img_array, threshold = threshold_value): 
+    img_array[img_array > threshold] = 0  # Omit intensities above the threshold
+    print(f" min intensity after thresholding: {np.min(img_array)}") # Printing the minimum intensity after thresholding
+    print(f" max intensity after thresholding: {np.max(img_array)}") # Printing the maximum intensity after thresholding
+
+    img_rescaled = np.interp(img_array, (img_array.min(), img_array.max()), (0, 65535))  # Rescale to 16-bit range
+    img_rescaled = img_rescaled.astype(np.uint16)
+    return img_rescaled
+
+# main function to capture and save images continuously.
+def capture_and_save_images(base_folder, camera):
     try:
         while True:
             current_time = datetime.datetime.now(datetime.timezone.utc)
@@ -83,7 +92,12 @@ def capture_and_save_images(base_folder, camera):
 
             # Capture an image with the specified exposure time
             image_array = camera.take_image(exposure_duration)
-            uint16_array = image_array.astype(np.uint16)
+            
+            print(f"Image array type: {image_array.dtype}, shape: {image_array.shape}")
+            print(f"Image min value: {np.min(image_array)}, max value: {np.max(image_array)}")
+
+            uint16_array = image_array.astype(np.uint16) # Converting the image to 16bit and rescale the intensities.
+            uint16_array = rescale_image(uint16_array, threshold=threshold_value)
 
             # Retrieve the current temperature
             try:
