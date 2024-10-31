@@ -1,6 +1,8 @@
 '''
-Explain here what it does.
-J.J. Delbressine (TU/e & UNIS)
+This program is based on Spectrogram_Processor_Past5Minutes.py. 
+This program asks for a date as input and will then process the all the average spectrograms found in the directory of the input date.
+
+J.J. Delbressine (UNIS & TU/e)
 '''
 
 import numpy as np
@@ -19,9 +21,6 @@ miss1_wavelength_coeffs = parameters['miss1_wavelength_coeffs']
 miss2_wavelength_coeffs = parameters['miss2_wavelength_coeffs']
 averaged_PNG_folder = parameters['averaged_PNG_folder']
 processed_spectrogram_dir = parameters['processed_spectrogram_dir']
-binX = parameters['binX'] # Check if the binning for that day is consistent with binning in the parameters file now!!!!!
-binY = parameters['binY']
-
 
 # Function to calculate wavelengths from the pixel, a.k.a. wavelength pixel relation.
 def calculate_wavelength(pixel_columns, coeffs):
@@ -37,9 +36,18 @@ def calculate_k_lambda(wavelengths, coeffs):
         print("Warning: Negative k_lambda values detected.")  # Warning for negative k_lambda values
     return k_lambda
 
+# Extracting the binning factors from the metadata.
+def extract_binning_from_metadata(metadata):
+    try:
+        binning_info = metadata.get("Binning", "1x1")
+        binX, binY = map(int, binning_info.split('x'))
+        return binX, binY
+    except Exception as e:
+        print(f"Error extracting binning factor from metadata: {e}")
+        return None, None 
 
 # Function to process and plot spectrograms
-def process_and_plot_with_flip_and_rotate(image_array, spectrograph_type, save_path, timestamp_str):
+def process_and_plot_with_flip_and_rotate(image_array, spectrograph_type, save_path, timestamp_str, binX, binY):
     print(f"Original image shape: {image_array.shape}")
     flipped_image = np.flipud(image_array) # Flip the spectrogram
     background = np.median(flipped_image, axis=0) # Calculating background by taking the median along the columns.
@@ -58,11 +66,6 @@ def process_and_plot_with_flip_and_rotate(image_array, spectrograph_type, save_p
     else:
         raise ValueError("Unknown spectrograph type. Please choose 'MISS1' or 'MISS2'.")
 
-    # Calibrate the image by multiplying with K_lambda and convert it to kR/Å
-    #calibrated_image = rotated_image * k_lambda[np.newaxis, :] / 1000  # Convert to kR/Å
-    #elevation_scale = np.linspace(-90, 90, fov_end - fov_start) # Elavation scale from -90 to 90 degrees.
-    #spatial_avg = np.mean(calibrated_image[fov_start:fov_end, :], axis=1) # Calculate spatial average across the rows
-
     #Adjusting the binned FOV portion from the rotated image for spatial analysis
     fov_start_binned, fov_end_binned = fov_start // binX, fov_end // binX
     wavelength_range = wavelengths[::binY]
@@ -80,16 +83,8 @@ def process_and_plot_with_flip_and_rotate(image_array, spectrograph_type, save_p
 
     ax_main = fig.add_subplot(gs[1, 0])
 
-    '''  #THIS CAN BE USED WHEN SPECTROGRAMS BADLY VISIBLE (TOO LITTLE LIGHT)
-    # Square root transformation such that the darker values are better visible. Rescaling applied since without the spectrogram still looks quite dark.
-    sqrt_calibrated_image = np.sqrt(np.clip(calibrated_image, 0, None)) # Clip in order to avoid negative values in sqrt function.
-    sqrt_calibrated_image -= sqrt_calibrated_image.min() # Shifting minimum to 0.
-    sqrt_calibrated_image /= sqrt_calibrated_image.max() # Scaling maximum to 1 
-    '''
-
     #ax_main.imshow(rotated_image, cmap='gray', aspect='auto', extent=[wavelengths.min(), wavelengths.max(), 0, rotated_image.shape[0]])
     ax_main.imshow(np.sqrt(np.clip(rotated_image, 0, None)), cmap='gray', aspect='auto', extent=[wavelengths.min(), wavelengths.max(), 0, rotated_image.shape[0]])
-    #ax_main.imshow(calibrated_image, cmap='gray', aspect='auto', extent=[wavelengths.min(), wavelengths.max(), 0, calibrated_image.shape[0]]) # This was the normal plotting function.
     
     tick_positions = np.linspace(fov_start_binned, fov_end_binned, num=7)
     tick_labels = ["South", "-60", "-30", "Zenith", "30", "60", "North"]
