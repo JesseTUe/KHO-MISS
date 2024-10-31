@@ -7,6 +7,9 @@ Created: September 2024
 
 '''
 
+'''
+Not in use at the moment (October 2024), Jesse Delbressine (UNIS & TU/e)
+'''
 import time
 from datetime import datetime, timezone
 import parameters
