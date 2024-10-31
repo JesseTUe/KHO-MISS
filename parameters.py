@@ -2,9 +2,9 @@
 This is where main parameters (PATHS and SETTINGS) are gathered for the user to change them from one and only place, affecting the entire MISS Software.
 
 Author: Nicolas Martinez (LTU/UNIS)
-
 Created: August 2024
 
+Updated by Jesse Delbressine (UNIS & TU/e)
 '''
 
 import os
@@ -14,19 +14,19 @@ parameters = {
 
     # Paths
     'raw_PNG_folder': os.path.join(os.path.expanduser("~"), ".venvMISS2", "MISS2", "Captured_PNG", "spectrograms_PNG"),
-    'averaged_PNG_folder': os.path.join(os.path.expanduser("~"), ".venvMISS2", "MISS2", "Captured_PNG", "averaged_PNG"),
+    'averaged_PNG_folder': os.path.join(os.path.expanduser("~"), ".venvMISS2", "MISS2", "Captured_PNG", "averaged_PNG"), # On MISS2 computer two extra "average_PNG" folder are made. Be careful with the directories!
     'processed_spectrogram_dir': os.path.join(os.path.expanduser("~"), ".venvMISS2", "MISS2", "Captured_PNG", "Processed_spectrograms"),
     'keogram_dir': os.path.join(os.path.expanduser("~"), ".venvMISS2", "MISS2", "Keograms"),
     'feed_dir': os.path.join(os.path.expanduser("~"), ".venvMISS2", "MISS2", "Feed"),
-    'spectro_path': os.path.join(os.path.expanduser("~"), ".venvMISS2", "MISS2", "Captured_PNG", "averaged_PNG"),
+    'spectro_path': os.path.join(os.path.expanduser("~"), ".venvMISS2", "MISS2", "Captured_PNG", "averaged_PNG"), # On MISS2 two extra "Averaged_PNG" folders are made, be careful with the directories!
     'RGB_folder': os.path.join(os.path.expanduser("~"), ".venvMISS2", "MISS2", "RGB_columns"),
 
     # Imaging Settings
     'exposure_duration': 12,  # 12 seconds for each image
-    'optimal_temperature': 0,  # 0°C for cooling
+    'optimal_temperature': -15,  # -15°C for cooling
     'imaging_cadence': 15,  # 15 seconds between image captures
-    'binX': 2,  # Horizontal binning
-    'binY': 2,  # Vertical binning
+    'binX': 4,  # Meridian binning
+    'binY': 2,  # Spectral binning
 
     # Spectral Coefficients [a_0, a_1, a_2] - Starting from last pixel row to first pixel row - spectrogram inversion caused by Artemis Software [in Ångström/pixel row]
     'miss1_wavelength_coeffs': [4217.273360, 2.565182, 0.000170],
