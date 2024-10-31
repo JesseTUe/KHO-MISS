@@ -1,7 +1,9 @@
 '''
-This program is based on RGB_Column_Maker_Current_Day. It will ask for a specific date and for this date RGB columns will be made.
-J.J. Delbressine
+This program is based on RGB_Column_Maker_Past5Minutes.py. It will ask for a specific date as input and for this date RGB columns will be made.
+
+Jesse Delbressine (UNIS & TU/e)
 '''
+#THIS PROGRAM IS STILL WORK IN PROGRESS ;)
 import os
 import numpy as np
 from scipy import signal
@@ -20,8 +22,6 @@ coeffs_sensitivity_miss2 = parameters['coeffs_sensitivity']['MISS2']
 miss1_horizon_limits = parameters['miss1_horizon_limits']
 miss2_horizon_limits = parameters["miss2_horizon_limits"]
 
-#binX = parameters['binX'] # CHECK If the binning factors in paramters file are consistent with the binning factors used on the date you want to make RGB columns.
-#binY = parameters['binY']
 
 # Function to calculate pixel position from wavelength using spectral fit coefficients and binning factor
 def calculate_pixel_position(wavelength, coeffs, max_pixel_value, binY):
@@ -90,7 +90,7 @@ def calculate_k_lambda(wavelengths, coeffs):
 # Process and average emission line rows
 def process_emission_line(spectro_array, emission_row, binY, pixel_range, min_rows_for_average=2):
     print(f"Processing emission line for row {emission_row} with binY {binY}")
-    num_rows_to_average = max(1, int(15 / binY)) # Determining number of rows to average based on binning factor. 
+    num_rows_to_average = max(1, int(12 / binY)) # Determining number of rows to average based on binning factor. 
     start_row = max(0, emission_row - binY // 2) # Defining start and end rows for the region of interest.
     end_row = min(spectro_array.shape[0], emission_row + num_rows_to_average // 2 + 1)
     available_rows = end_row - start_row
