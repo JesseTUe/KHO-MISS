@@ -1,6 +1,6 @@
 '''
-This program asks for a date and it will then average the captured spectrograms of that day minute wise and will store them in the given directory. The averaged images are saved with the relevant metadata.
-This program is based on "Average_PNG_Maker.py" made by Nicolas Martinez (UNIS/LTU).
+This program asks for a date as input and it will then average the captured spectrograms of that day minute wise and will store them in the given directory. The averaged images are saved with the relevant metadata.
+This program is based on "AVERAGE_PNG_MAKER.py" made by Nicolas Martinez (UNIS/LTU).
 
 Jesse Delbressine (TU/e & UNIS)
 '''
@@ -24,10 +24,10 @@ def get_device_name_from_metadata(filepath):
             match = re.search(r'(MISS\d)', note)
             if match:
                 return match.group(1)
-        return "MISS2"  # Default to "MISS2" if no device name is found
+        return "MISS2"  # Default to "MISS2" if no device name is found, change this to MISS1 on MISS1 computer.
     except Exception as e:
         print(f"Error reading metadata from {os.path.basename(filepath)}: {e}")
-        return "MISS2"  # Default to "MISS2" in case of error
+        return "MISS2"  # Default to "MISS2" in case of error, change this to MISS1 on MISS1 computer.
 
 #Function to average the captured spectrograms minute-wise.
 def average_images(PNG_base_folder, raw_PNG_folder, selected_date, processed_minutes):
@@ -68,7 +68,7 @@ def average_images(PNG_base_folder, raw_PNG_folder, selected_date, processed_min
 
                 sum_img_array = None
                 count = 0
-                device_name = "MISS2"  # Default device name
+                device_name = "MISS2"  # Default device name, change this to MISS1 on MISS1 computer.
                 metadata = None
 
                 # Process the image(s)
