@@ -8,6 +8,12 @@ Last update: September 2024
 
 '''
 
+'''
+Not in use at the moment (October 2024). "Keogram_Maker_Past5Minutes.py" and "Spectrogram_Processor_Past5Minutes.py" will save the latest keogram and spectrogram to "Z:\\kho\\MISS2" every 5 minutes.
+These can be find on the kho website, i.e. kho.unis.no/MISS2/latest-keogram.png and kho.unis.no/MISS2/latest-spectrogram.png.
+Jesse Delbressine (TU/e & UNIS) 
+'''
+
 import os
 import shutil
 import time
