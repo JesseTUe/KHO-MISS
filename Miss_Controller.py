@@ -9,8 +9,9 @@ This program operates the MISS's Atik 414EX and Sunshield Lens shutter when the 
 6. Handle interrupts by stopping subprocesses and exiting the script.
 
 Author: Nicolas Martinez (UNIS/LTU)
-Last update: September 2024
 
+Sunshield commands are outcommented since sunshield not installed yet.
+Jesse Delbressine (UNIS & TU/e)
 '''
 
 import signal
@@ -52,16 +53,38 @@ def check_atik_process():
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)  # Handle interrupt signal to safely stop the program
-
+''' 
     try:
         ser = init_serial()  # Initialise serial communication for SunShield control
     except serial.SerialException as e:
         print(f"Failed to open serial port: {e}")
         ser = None
-
+'''
     last_execution_time = time.time()  # Track the last execution time for the 60-second interval
-
     try:
+        #Below an initial check is done without waiting 60 seconds
+        if it_is_darktime():
+            is_currently_night = True
+            print('darktime: Camera and SunShield Operational')
+            # if ser:    # This is outcommented, UNDO this when Sunshield is in place.
+                    #    SunShield_OPEN(ser)  # Open the SunShield
+            if not image_capture_process or not check_atik_process(): # Start the process ONLY when not running or has failed.
+                script_path = os.path.join(os.path.expanduser("~"), ".venvMISS2", "MISS2", "MISS_SOFTWARE-PACKAGE", "CAPTURE_ATIK.py")
+                try:
+                    image_capture_process = subprocess.Popen(["python", script_path])
+                    print("Atik camera process started.")
+                except Exception as e:
+                            print(f"Failed to start Atik camera process: {e}")
+            else: #DAYTIMEE
+                is_currently_night = False
+                print("Daytime: Camera and Sunshield OFF")
+                if image_capture_process:
+                    print("Stopping image capture... ")
+                    stop_processes([image_capture_process])
+                    image_capture_process = None
+                #if ser:  # This is outcommented, UNDO this when Sunshield is in place.
+                #   SunShield_CLOSE(ser)  # Close the SunShield
+        #Below is the main loop for the periodic (60seconds) checking
         while running:
             current_time = time.time()
             if current_time - last_execution_time >= 60:  # Check every 60 seconds
@@ -71,8 +94,8 @@ if __name__ == "__main__":
                     if is_currently_night is not True:  # Check for transition day-night
                         is_currently_night = True
                         print('darktime: Camera and SunShield Operational')
-                    if ser:
-                        SunShield_OPEN(ser)  # Open the SunShield
+                   # if ser:
+                    #    SunShield_OPEN(ser)  # Open the SunShield
                     if not image_capture_process or not check_atik_process():  # Only start the process if it's not running or has failed
                         script_path = os.path.join(os.path.expanduser("~"), ".venvMISS2", "MISS2", "MISS_SOFTWARE-PACKAGE", "CAPTURE_ATIK.py")
                         try:
@@ -89,8 +112,8 @@ if __name__ == "__main__":
                             print("Stopping image capture...")
                             stop_processes([image_capture_process])
                             image_capture_process = None
-                        if ser:
-                            SunShield_CLOSE(ser)  # Close the SunShield
+                        #if ser:
+                         #   SunShield_CLOSE(ser)  # Close the SunShield
 
     except KeyboardInterrupt:
         print("Interrupt received, cleaning up...")
