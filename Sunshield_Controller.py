@@ -5,7 +5,9 @@ The shutter can be commanded to open or close by sending specific commands to th
 The script includes functions for initializing the serial port, opening the shutter, and closing the shutter.
 
 Author: Nicolas Martinez (UNIS/LTU)
-Last Update: 2024
+
+The sunshield shutter commands are outcommented since the shutter is not installed yet.
+Jesse Delbressine (UNIS & TU/e)
 
 '''
 
@@ -36,7 +38,7 @@ def init_serial():
     except FileNotFoundError as e:
         print(f"Failed to open serial port: {e}")
         return None
-
+''' 
 def SunShield_CLOSE(ser):
     '''
     Sends the CLOSE command (S1\r) to the SunShield shutter.
@@ -66,12 +68,12 @@ def SunShield_OPEN(ser):
         print(f"Response to OPEN command: {response.decode().strip()}")
     except serial.SerialException as e:
         print(f"Serial error: {e}")
-
+'''
 if __name__ == "__main__":
     ser = init_serial()  
     if ser:
-        SunShield_OPEN(ser)     
-        SunShield_CLOSE(ser)   
+        #SunShield_OPEN(ser)     
+        #SunShield_CLOSE(ser)   
         ser.close()
     else:
         print("Unable to initialise serial connection.")
