@@ -1,6 +1,8 @@
 '''
-This program will use the rgb columns created to make a keogram. It will ask for a specific date as input and then make a keogram for this specific date if rgb columns are present for that day.
-J.J. Delbressine 
+This program will use the rgb columns created to make a keogram. It will ask for a specific date as input and then make a keogram for this specific date if rgb columns are present for that day. 
+This program is based on Keogram_Maker_Past5minutes from Nicolas Martinez (UNIS & LTU) and Jesse Delbressine (UNIS & TU/e).
+
+Jesse Delbressine (UNIS & TU/e)
 '''
 
 import os
