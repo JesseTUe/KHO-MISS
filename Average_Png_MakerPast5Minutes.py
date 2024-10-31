@@ -24,10 +24,10 @@ def get_device_name_from_metadata(filepath):
             match = re.search(r'(MISS\d)', note)
             if match: 
                 return match.group(1)
-        return "MISS2" # Default to "MISS2" if no device name is found.
+        return "MISS2" # Default to "MISS2" if no device name is found, change to MISS1 on MISS1 computer.
     except Exception as e:
         print(f"Error reading metadata from {os.path.basename(filepath)}: {e}")
-        return "MISS2"  #Default to "MISS2" in case of error
+        return "MISS2"  #Default to "MISS2" in case of error, , change to MISS1 on MISS1 computer.
         
 #Function to average the captured spectrograms of the last 5minutes. They are averaged minute wise.
 def average_images(PNG_base_folder, raw_PNG_folder, processed_minutes):
