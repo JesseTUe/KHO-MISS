@@ -1,16 +1,8 @@
 """
-This script processes PNG images captured by MISS*, averages them minute-wise, and saves the averaged images in a 
-shared `averaged_PNG` directory. The script checks the device name in the image metadata to determine which device captured the image. 
-The processed images are then saved using the device name in the filename, and the relevant metadata is preserved with a note indicating that the image is a 1-minute spectrogram average.
+This program will average the captured spectrograms minute wise for the last 5 minutes of the current day. The averaged images are saved with the relevant metadata.
+This program is based on "Average_PNG_Maker.py" made by Nicolas Martinez (UNIS/LTU).
 
-Parameters:
-1. PNG_base_folder (str): The base directory where the averaged images will be saved.
-2. raw_PNG_folder (str): The directory containing the raw PNG images.
-3. current_time (datetime): The current UTC time.
-4. processed_minutes (list): A list to keep track of already processed minutes
-
-Author: Nicolas Martinez (UNIS/LTU)
-Last update: September 2024
+Jesse Delbressine (UNIS & TU/e)
 """
 
 import os
@@ -22,16 +14,8 @@ import re
 from collections import defaultdict
 from parameters import parameters  # Import the parameters dictionary
 
+# Function to extract the device name (MISS1 or MISS2) from the metadata. If no metadata present, "MISS2" is returned by default.
 def get_device_name_from_metadata(filepath):
-    '''
-    Extracts the device name (MISS1, MISS2...) from the PNG metadata.
-
-    Parameters:
-        filepath (str): The file path of the image.
-
-    Returns:
-        str: The device name if found, otherwise None.
-    '''
     try:
         img = Image.open(filepath)
         metadata = img.info
@@ -40,74 +24,86 @@ def get_device_name_from_metadata(filepath):
             match = re.search(r'(MISS\d)', note)
             if match: 
                 return match.group(1)
-        return None
+        return "MISS2" # Default to "MISS2" if no device name is found.
     except Exception as e:
         print(f"Error reading metadata from {os.path.basename(filepath)}: {e}")
-        return None
+        return "MISS2"  #Default to "MISS2" in case of error
+        
+#Function to average the captured spectrograms of the last 5minutes. They are averaged minute wise.
+def average_images(PNG_base_folder, raw_PNG_folder, processed_minutes):
+    # Use the current date and time in UTC
+    current_time = datetime.datetime.now(datetime.timezone.utc)
+    print(f"Starting to process images for {current_time.strftime('%Y%m%d')} at {current_time.strftime('%H:%M:%S')}")
 
-def average_images(PNG_base_folder, raw_PNG_folder, current_time, processed_minutes):
-
+     # Calculate the time 5 minutes ago
+    time_5_minutes_ago = current_time - datetime.timedelta(minutes=5)
+    
     images_by_minute = defaultdict(list)
-    filename_regex = re.compile(r'^.+-(\d{8})-(\d{6})\.png$')  # Regex to match filenames
+    filename_regex = re.compile(r'^MISS2-(\d{8})-(\d{6})\.png$')  # Regex for the PNG file pattern, change MISS2 to MISS1 on MISS1 computer
+    current_date_str = current_time.strftime("%Y%m%d")
+    
+    # Set the folder for the current day
+    raw_PNG_folder_today = os.path.join(raw_PNG_folder, current_date_str[:4], current_date_str[4:6], current_date_str[6:])
 
-    # Convert current time to UTC
-    current_time_utc = current_time.astimezone(datetime.timezone.utc)
-
-    # Group images based on the minute they belong to
-    for root, dirs, files in os.walk(raw_PNG_folder):
+    # Walk through the raw PNG folder of the current day
+    for root, dirs, files in os.walk(raw_PNG_folder_today):
+        print(f"Checking directory: {root}")  # DEBUG STATEMENT
         for filename in files:
+            print(f"Found file: {filename}")  # DEBUG STATEMENT
             filepath = os.path.join(root, filename)
             match = filename_regex.match(filename)
             if match:
                 date_part, time_part = match.groups()
-                image_date = datetime.datetime.strptime(date_part, "%Y%m%d").replace(tzinfo=datetime.timezone.utc).date()
-                current_date = current_time_utc.date()
-                if image_date == current_date:
-                    image_utc = datetime.datetime.strptime(date_part + time_part[:4], "%Y%m%d%H%M").replace(tzinfo=datetime.timezone.utc)
-                    prev_minute = current_time_utc - datetime.timedelta(minutes=1)
-                    if image_utc < prev_minute:
-                        images_by_minute[date_part + '-' + time_part[:4]].append(filepath)
+                image_time = datetime.datetime.strptime(f"{date_part}-{time_part}", "%Y%m%d-%H%M%S").replace(tzinfo=datetime.timezone.utc)
+
+                # Only process images from the last 5 minutes
+                if time_5_minutes_ago <= image_time <= current_time:
+                    minute_key = date_part + '-' + time_part[:4]  # Group by minute
+                    print(f"Adding file to minute key: {minute_key}")  # DEBUG statement
+                    images_by_minute[minute_key].append(filepath)
+
 
     # Process each minute-group of images IF not already processed
     for minute_key, filepaths in images_by_minute.items():
-        if minute_key not in processed_minutes:
-            year, month, day, hour, minute = map(int, [minute_key[:4], minute_key[4:6], minute_key[6:8], minute_key[9:11], minute_key[11:]])
-            target_utc = datetime.datetime(year, month, day, hour, minute, tzinfo=datetime.timezone.utc)
-
-            if target_utc < current_time_utc - datetime.timedelta(seconds=15):
+        if len(filepaths) > 0:  # Only process if there are images
+            print(f"Processing minute: {minute_key}, with {len(filepaths)} images")  # DEBUGGING
+            if minute_key not in processed_minutes:
+                year, month, day, hour, minute = map(int, [minute_key[:4], minute_key[4:6], minute_key[6:8], minute_key[9:11], minute_key[11:]])
+                target_utc = datetime.datetime(year, month, day, hour, minute, tzinfo=datetime.timezone.utc)
 
                 sum_img_array = None
                 count = 0
-                device_name = None
+                device_name = "MISS2"  #Change this to MISS1 on MISS1 computer.
                 metadata = None  # Variable to hold metadata
 
+                # Process each image.
                 for filepath in filepaths:
                     try:
-                        if not device_name:
-                            device_name = get_device_name_from_metadata(filepath)
-
+                        print(f"Opening image: {filepath}")  # DEBUGGING
                         img = Image.open(filepath)
                         img_array = np.array(img)
-
+                        print(f"Image shape: {img_array.shape}")  # CHECKING image array shape
+                        
                         if sum_img_array is None:
                             sum_img_array = np.zeros_like(img_array, dtype='float64')
 
                         sum_img_array += img_array
                         count += 1
 
-                        # Capture metadata from the first image
+                        # Get metadata from the first image only.
                         if metadata is None:
                             metadata = img.info
 
                     except Exception as e:
                         print(f"Error processing image {os.path.basename(filepath)}: {e}")
 
-                # If images were found for this minute, average them and save
-                if count > 0 and device_name:
+                # Average the images and save if count >0
+                if count > 0:
+                    print(f"Count of images for averaging: {count}")  # DEBUGGING
                     averaged_image = (sum_img_array / count).astype(np.uint16)
                     
                     # Create a shared directory for averaged PNGs
-                    averaged_PNG_folder = os.path.join(PNG_base_folder, "averaged_PNG")
+                    averaged_PNG_folder = os.path.join(PNG_base_folder)
                     os.makedirs(averaged_PNG_folder, exist_ok=True)
 
                     # Create a date-specific folder within the shared directory
@@ -116,27 +112,31 @@ def average_images(PNG_base_folder, raw_PNG_folder, current_time, processed_minu
 
                     # Save the averaged image
                     averaged_image_path = os.path.join(save_folder, f"{device_name}-{year:04d}{month:02d}{day:02d}-{hour:02d}{minute:02d}00.png")
-
+                    print(f"Saving averaged image to: {averaged_image_path}")  # DEBUGGING
+                    
                     # Convert numpy array back to an Image object and specify the mode for 16-bit
                     averaged_img = Image.fromarray(averaged_image, mode='I;16')
 
-                    # Preserve the original metadata and add a note about the averaging
+                    pnginfo = PngImagePlugin.PngInfo()
                     if metadata:
-                        pnginfo = PngImagePlugin.PngInfo()
                         for key, value in metadata.items():
                             if key in ["Exposure Time", "Date/Time", "Temperature", "Binning", "Note"]:
                                 pnginfo.add_text(key, str(value))
                         pnginfo.add_text("Note", f"1-minute average image. {metadata.get('Note', '')}")
-                        averaged_img.save(averaged_image_path, pnginfo=pnginfo)
                     else:
-                        pnginfo = PngImagePlugin.PngInfo()
                         pnginfo.add_text("Note", "1-minute average image.")
-                        averaged_img.save(averaged_image_path, pnginfo=pnginfo)
-                    
-                    print(f"Saved averaged image with metadata: {averaged_image_path}")
 
-                    # Update the list of already processed minutes
-                    processed_minutes.append(minute_key)
+                    try:
+                        averaged_img.save(averaged_image_path, pnginfo=pnginfo)
+                        print(f"Saved averaged image with metadata: {averaged_image_path}")  # DEBUGGING
+                    except Exception as e:
+                        print(f"Error saving averaged image: {e}")
+
+                    processed_minutes.append(minute_key)  # Keep track of processed minute keys
+                else:
+                    print(f"No images processed for minute: {minute_key}")  # DEBUGGING
+        else:
+            print(f"Skipping processing for minute: {minute_key}, with 0 images")  # DEBUGGING
 
 # Use the parameters dictionary to get paths
 raw_PNG_folder = parameters['raw_PNG_folder']
@@ -145,10 +145,5 @@ PNG_base_folder = parameters['averaged_PNG_folder']
 # List to keep track of processed minutes 
 processed_minutes = []
 
-while True:
-    try:
-        current_time = datetime.datetime.now(datetime.timezone.utc)
-        average_images(PNG_base_folder, raw_PNG_folder, current_time, processed_minutes)
-        time.sleep(30 - (current_time.second % 30))  # Sleep until 30 seconds past the minute
-    except Exception as e:
-        print(f"An error occurred: {e}")
+# Call the average_images function for the current date and last 5 minutes
+average_images(PNG_base_folder, raw_PNG_folder, processed_minutes)
