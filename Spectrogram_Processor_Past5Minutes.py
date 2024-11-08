@@ -51,9 +51,11 @@ def calculate_k_lambda(wavelengths, coeffs):
 def process_and_plot_with_flip_and_rotate(image_array, spectrograph_type, filename):
     print(f"Original image shape: {image_array.shape}")
     flipped_image = np.flipud(image_array)
-    background = np.median(flipped_image, axis=0) # Calculating background by taking the median along the columns.
-    background_subtracted_image = np.clip(flipped_image - background[np.newaxis, :], 0, None) # Substract the background and clip values to ensure only positive pixel values.
-    rotated_image = rotate(background_subtracted_image, angle=90, reshape=True)
+    #background = np.median(flipped_image, axis=0) # Calculating background by taking the median along the columns.
+    #background_subtracted_image = np.clip(flipped_image - background[np.newaxis, :], 0, None) # Substract the background and clip values to ensure only positive pixel values.
+    #rotated_image = rotate(background_subtracted_image, angle=90, reshape=True)
+    rotated_image = rotate(flipped_image, angle=90, reshape=True) # Rotating image 90 degrees
+    # ABOVE is outcommented since that background substraction is too strong, maybe use a fixed background which needs to be subtracted.
     
     # Choose the spectrograph type and apply relevant coefficients
     if spectrograph_type == "MISS1":
