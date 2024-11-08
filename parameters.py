@@ -26,7 +26,7 @@ parameters = {
     'optimal_temperature': -15,  # -15°C for cooling
     'imaging_cadence': 15,  # 15 seconds between image captures
     'binX': 4,  # Meridian binning
-    'binY': 2,  # Spectral binning
+    'binY': 1,  # Spectral binning
 
     # Spectral Coefficients [a_0, a_1, a_2] - Starting from last pixel row to first pixel row - spectrogram inversion caused by Artemis Software [in Ångström/pixel row]
     'miss1_wavelength_coeffs': [4217.273360, 2.565182, 0.000170],
