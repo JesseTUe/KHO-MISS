@@ -27,7 +27,6 @@ miss2_horizon_limits = parameters["miss2_horizon_limits"]
 def calculate_pixel_position(wavelength, coeffs, max_pixel_value, binY):
     print(f"C0={coeffs[0]}, C1={coeffs[1]}, C2={coeffs[2]}")
     #discriminant = coeffs[1]**2 - 4 * coeffs[2] * (coeffs[0] - wavelength) # Quadratic formula.
-    #discriminant = coeffs[1]**2 - 4 * coeffs[0] * (coeffs[2] - wavelength) #This is what was in Nicolas his code
     ''' 
     if discriminant < 0:
         print(f"No real solution for wavelength {wavelength}, discriminant < 0.")
@@ -36,7 +35,8 @@ def calculate_pixel_position(wavelength, coeffs, max_pixel_value, binY):
     #pixel_position = (-coeffs[1] + sqrt_discriminant) / (2 * coeffs[2])
     pixel_position = (-coeffs[1] + sqrt_discriminant) / (2 * coeffs[0])
     '''
-    pixel_position = (coeffs[1] + 2078 * coeffs[2] - np.sqrt(coeffs[1]**2 - 4 * coeffs[0] * coeffs[2] + 4 * coeffs[2] * wavelength)) / (2 * coeffs[2])
+    #pixel_position = (coeffs[1] + 2078 * coeffs[2] - np.sqrt(coeffs[1]**2 - 4 * coeffs[0] * coeffs[2] + 4 * coeffs[2] * wavelength)) / (2 * coeffs[2])
+    pixel_position = (-coeffs[1] + np.sqrt(coeffs[1]**2 - 4*coeffs[2]* (coeffs[0]- wavelength)))/ (2*coeffs[2])
     binned_pixel_position = pixel_position / binY
     if 0 <= binned_pixel_position <= max_pixel_value: # Ensuring the pixel position is within the range.
         return binned_pixel_position
@@ -91,7 +91,8 @@ def calculate_k_lambda(wavelengths, coeffs):
 def process_emission_line(spectro_array, emission_row, binY, pixel_range, min_rows_for_average=2):
     print(f"Processing emission line for row {emission_row} with binY {binY}")
     num_rows_to_average = max(1, int(12 / binY)) # Determining number of rows to average based on binning factor. 
-    start_row = max(0, emission_row - binY // 2) # Defining start and end rows for the region of interest.
+    #start_row = max(0, emission_row - binY // 2) # Defining start and end rows for the region of interest.
+    start_row = max(0, emission_row - num_rows_to_average // 2)
     end_row = min(spectro_array.shape[0], emission_row + num_rows_to_average // 2 + 1)
     available_rows = end_row - start_row
     if available_rows < min_rows_for_average:
@@ -121,17 +122,24 @@ def create_rgb_column(spectro_array, row_6300, row_5577, row_4278, binY, pixel_r
         print(f"Image will be skipped due to missing emission line data.")
         return None
     
-    def scale_channel(channel_data): 
+   #Applying k_lambda
+    column_RED = column_RED * k_lambda_6300
+    column_GREEN = column_GREEN * k_lambda_5577
+    column_BLUE = column_BLUE * k_lambda_4278
+
+    
+    def scale_channel(channel_data, scale_factor): # The scale factor is now set to 1, can be adjusted for better colouring.
         min_val = np.min(channel_data)
         max_val = np.max(channel_data)
         range_val = max_val - min_val
-        return np.clip(((channel_data - min_val) / range_val) * 255, 0, 255).astype(np.uint8) if range_val != 0 else np.zeros_like(channel_data, dtype=np.uint8)
+        print(f"Channel min value: {min_val}, max value: {max_val}, range: {range_val}")
+        return np.clip(((channel_data - min_val) / range_val) * 255 *scale_factor, 0, 255).astype(np.uint8) if range_val != 0 else np.zeros_like(channel_data, dtype=np.uint8)
     
     
     # Scale and reshape each channel
-    column_RED = scale_channel(column_RED).reshape(300, 1)
-    column_GREEN = scale_channel(column_GREEN).reshape(300, 1)
-    column_BLUE = scale_channel(column_BLUE).reshape(300, 1)
+    column_RED = scale_channel(column_RED, scale_factor=1).reshape(300, 1)
+    column_GREEN = scale_channel(column_GREEN, scale_factor=1).reshape(300, 1)
+    column_BLUE = scale_channel(column_BLUE,scale_factor=1).reshape(300, 1)
     true_rgb_image = np.stack((column_RED, column_GREEN, column_BLUE), axis=-1) # Stack channels to form final rgb column.
     if true_rgb_image.shape != (300, 1, 3):
         print(f"Error: RGB image has an incorrect shape {true_rgb_image.shape}. Expected shape: (300, 1, 3)")
@@ -139,7 +147,7 @@ def create_rgb_column(spectro_array, row_6300, row_5577, row_4278, binY, pixel_r
     print(f"Succesfull created RGB column.")
     return true_rgb_image
 
-# Process images to create RGB columns for a specific date, MAIN function.
+# Process images to create RGB columns for a specific date, main function.
 def create_rgb_columns_for_date(date_str):
     print(f"Processing images for date: {date_str}")
     spectro_path_dir = os.path.join(spectro_path, date_str)
@@ -181,14 +189,9 @@ def create_rgb_columns_for_date(date_str):
                 continue
 
             # Round pixel positions to nearest integer. Fit lambda(pixel_row) is starting from last pixel!!!
-            #row_6300 = max_pixel_value - int(round(row_6300)) 
-            #row_5577 = max_pixel_value - int(round(row_5577))
-            #row_4278 = max_pixel_value - int(round(row_4278))
-
-            row_6300 = int(round(row_6300)) 
-            row_5577 = int(round(row_5577))
-            row_4278 = int(round(row_4278))
-
+            row_6300 = max_pixel_value - int(round(row_6300)) 
+            row_5577 = max_pixel_value - int(round(row_5577))
+            row_4278 = max_pixel_value - int(round(row_4278))
 
             # Determine k_lambda for each emission line (Radiometric calibration) 
             k_lambda_6300 = calculate_k_lambda(6300, coeffs_sensitivity_miss2)
