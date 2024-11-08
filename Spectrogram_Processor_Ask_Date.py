@@ -25,7 +25,7 @@ processed_spectrogram_dir = parameters['processed_spectrogram_dir']
 # Function to calculate wavelengths from the pixel, a.k.a. wavelength pixel relation.
 def calculate_wavelength(pixel_columns, coeffs):
     wavelengths = coeffs[0] + coeffs[1] * pixel_columns + coeffs[2] * (pixel_columns ** 2)
-    print(f"Calculated wavelengths: {wavelengths[:50]}...")  # Debugging: Show first 50 wavelengths
+    print(f"Calculated wavelengths: {wavelengths[:10]}...")  # Debugging: Show first 50 wavelengths
     return wavelengths
 
 # Function to calculate calibration factor K_lambda, needed for radiometric calibration.
@@ -35,6 +35,12 @@ def calculate_k_lambda(wavelengths, coeffs):
     if np.any(k_lambda < 0):
         print("Warning: Negative k_lambda values detected.")  # Warning for negative k_lambda values
     return k_lambda
+
+# Read the PNG image, apply binning correction and extract metadata
+def read_png_with_metadata(filename):
+    with Image.open(filename) as img:
+        metadata = img.info
+        return  metadata
 
 # Extracting the binning factors from the metadata.
 def extract_binning_from_metadata(metadata):
@@ -50,10 +56,11 @@ def extract_binning_from_metadata(metadata):
 def process_and_plot_with_flip_and_rotate(image_array, spectrograph_type, save_path, timestamp_str, binX, binY):
     print(f"Original image shape: {image_array.shape}")
     flipped_image = np.flipud(image_array) # Flip the spectrogram
-    background = np.median(flipped_image, axis=0) # Calculating background by taking the median along the columns.
-    background_subtracted_image = np.clip(flipped_image - background[np.newaxis, :], 0, None) # Substract the background and clip values to ensure only positive pixel values present.
-    rotated_image = rotate(background_subtracted_image, angle=90, reshape=True) # Rotating the image 90 degrees.
-
+    #background = np.median(flipped_image, axis=0) # Calculating background by taking the median along the columns.
+    #background_subtracted_image = np.clip(flipped_image - background[np.newaxis, :], 0, None) # Substract the background and clip values to ensure only positive pixel values present.
+    #rotated_image = rotate(background_subtracted_image, angle=90, reshape=True) # Rotating the image 90 degrees.
+    rotated_image = rotate(flipped_image, angle=90, reshape=True) # Rotating the image 90 degrees.
+    
     # Choose the spectrograph type and apply relevant coefficients
     if spectrograph_type == "MISS1":
         wavelengths = calculate_wavelength(np.arange(rotated_image.shape[1]) * binY, miss1_wavelength_coeffs)
