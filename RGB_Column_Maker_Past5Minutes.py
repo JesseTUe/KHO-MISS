@@ -99,7 +99,9 @@ def calculate_k_lambda(wavelengths, coeffs):
 def process_emission_line(spectro_array, emission_row, binY, pixel_range, min_rows_for_average=2):
     num_rows_to_average = max(1, int(12 / binY))
     start_row = max(emission_row - num_rows_to_average // 2, 0)
-    end_row = min(emission_row + num_rows_to_average // 2, spectro_array.shape[0])
+    #end_row = min(emission_row + num_rows_to_average // 2, spectro_array.shape[0])
+    end_row = min(spectro_array.shape[0], emission_row + num_rows_to_average // 2 + 1)
+
 
     # Check if enough rows are available for averaging
     available_rows = end_row - start_row
@@ -130,28 +132,37 @@ def create_rgb_column(spectro_array, row_6300, row_5577, row_4278, binY, pixel_r
         print(f"Image will be skipped due to missing emission line data.")
         return None
         
-    # Scale each channel individually based on its own dynamic range
-    def scale_channel(channel_data):
+    #Applying k_lambda
+    column_RED = column_RED * k_lambda_6300
+    column_GREEN = column_GREEN * k_lambda_5577
+    column_BLUE = column_BLUE * k_lambda_4278
+
+    
+    def scale_channel(channel_data, scale_factor): # Scale factor is now set to one, change accordingly for hopefully better colours.
         min_val = np.min(channel_data)
         max_val = np.max(channel_data)
         range_val = max_val - min_val
-        if range_val == 0:
-            # If the channel has constant values, set to zero
-            return np.zeros_like(channel_data, dtype=np.uint8)
-        else:
-            scaled = ((channel_data - min_val) / range_val) * 255
-            return np.clip(scaled, 0, 255).astype(np.uint8)
-
-    scaled_red_channel = scale_channel(column_RED)
-    scaled_green_channel = scale_channel(column_GREEN)
-    scaled_blue_channel = scale_channel(column_BLUE)
+        print(f"Channel min value: {min_val}, max value: {max_val}, range: {range_val}")
+        return np.clip(((channel_data - min_val) / range_val) * 255 *scale_factor, 0, 255).astype(np.uint8) if range_val != 0 else np.zeros_like(channel_data, dtype=np.uint8)
+    
+    
+    # Scale and reshape each channel
+    scaled_red_channel = scale_channel(column_RED, scale_factor=1).reshape(300, 1)
+    scaled_green_channel = scale_channel(column_GREEN, scale_factor=1).reshape(300, 1)
+    scaled_blue_channel = scale_channel(column_BLUE,scale_factor=1).reshape(300, 1)
+    
 
     # Combine the individually scaled channels into the final RGB image
     true_rgb_image = np.stack((scaled_red_channel, scaled_green_channel, scaled_blue_channel), axis=-1)
 
-    return true_rgb_image
+    true_rgb_image_flipped = np.flipud(true_rgb_image) # Flipping the RGB column since I thought they were upside down.
+    if true_rgb_image_flipped.shape != (300, 1, 3):
+        print(f"Error: RGB image has an incorrect shape {true_rgb_image_flipped.shape}. Expected shape: (300, 1, 3)")
+        return None
+    print(f"Succesfull created RGB column.")
+    return true_rgb_image_flipped
 
-# Process images to create RGB columns with k_lambda for proper RGB ratios
+# Process images to create RGB columns, main function
 def create_rgb_columns():
     global processed_images, current_day
 
